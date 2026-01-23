@@ -10,7 +10,8 @@ from .utils import cart_to_eeglab, fname_to_setname
 
 
 def export_set(fname, data, sfreq, ch_names, ch_locs=None, annotations=None,
-               ref_channels="common", ch_types=None, precision="single"):
+               ref_channels="common", ch_types=None, precision="single",
+               *, icaweights=None, icasphere=None, icawinv=None):
     """Export continuous raw data to EEGLAB's .set format.
 
     Parameters
@@ -84,6 +85,11 @@ def export_set(fname, data, sfreq, ch_names, ch_locs=None, annotations=None,
     if isinstance(ref_channels, list):
         ref_channels = " ".join(ref_channels)
 
+    # ICA
+    icawinv = icawinv.astype(precision) if icawinv is not None else []
+    icaweights = icaweights.astype(precision) if icaweights is not None else []
+    icasphere = icasphere.astype(precision) if icasphere is not None else [] 
+
     eeg_d = dict(data=data,
                  setname=setname,
                  nbchan=float(data.shape[0]),
@@ -94,9 +100,10 @@ def export_set(fname, data, sfreq, ch_names, ch_locs=None, annotations=None,
                  xmax=float(data.shape[1] / sfreq),
                  ref=ref_channels,
                  chanlocs=chanlocs,
-                 icawinv=[],
-                 icasphere=[],
-                 icaweights=[])
+                 icawinv=icawinv,
+                 icasphere=icasphere,
+                 icaweights=icaweights,
+                 )
 
     # convert annotations to events
     if annotations is not None:

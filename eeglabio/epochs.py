@@ -11,7 +11,9 @@ from .utils import cart_to_eeglab, fname_to_setname, logger
 
 def export_set(fname, data, sfreq, events, tmin, tmax, ch_names, event_id=None,
                ch_locs=None, annotations=None, ref_channels="common",
-               precision="single", *, epoch_indices=None):
+               precision="single", *, epoch_indices=None,
+               icaweights=None, icasphere=None, icawinv=None,
+               ):
     """Export epoch data to EEGLAB's .set format.
 
     Parameters
@@ -214,6 +216,11 @@ def export_set(fname, data, sfreq, events, tmin, tmax, ch_names, event_id=None,
     if isinstance(ref_channels, list):
         ref_channels = " ".join(ref_channels)
 
+    # ICA
+    icawinv = icawinv.astype(precision) if icawinv is not None else []
+    icaweights = icaweights.astype(precision) if icaweights is not None else []
+    icasphere = icasphere.astype(precision) if icasphere is not None else [] 
+
     eeg_d = dict(data=data,
                  setname=setname,
                  nbchan=data.shape[0],
@@ -226,7 +233,8 @@ def export_set(fname, data, sfreq, events, tmin, tmax, ch_names, event_id=None,
                  chanlocs=chanlocs,
                  event=events,
                  epoch=epochs,
-                 icawinv=[],
-                 icasphere=[],
-                 icaweights=[])
+                 icawinv=icawinv,
+                 icasphere=icasphere,
+                 icaweights=icaweights,
+                 )
     savemat(str(fname), eeg_d, appendmat=False)
