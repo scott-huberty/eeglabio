@@ -133,6 +133,13 @@ def cart_to_eeglab(cart):
     return np.append(cart, cart_to_eeglab_sph(cart), 1)  # hstack
 
 
+
+def get_non_bad_channel_indices(ch_names, bads=None):
+    """Return indices of channels in ch_names that are not in bads."""
+    bads = set(bads) if bads is not None else set()
+    return np.array([idx for idx, ch_name in enumerate(ch_names)
+                     if ch_name not in bads], dtype=np.int64)
+
 def export_mne_epochs(inst, fname, precision="single"):
     """Export MNE's Epochs instance to EEGLAB's .set format using
     :func:`.epochs.export_set`.

@@ -6,12 +6,12 @@ try:
 except ImportError:
     from numpy.core.records import fromarrays  # NumPy <2.0
 
-from .utils import cart_to_eeglab, fname_to_setname
+from .utils import cart_to_eeglab, fname_to_setname, get_non_bad_channel_indices
 
 
 def export_set(fname, data, sfreq, ch_names, ch_locs=None, annotations=None,
                ref_channels="common", ch_types=None, precision="single",
-               *, icaweights=None, icasphere=None, icawinv=None):
+               *, bads=None, icaweights=None, icasphere=None, icawinv=None):
     """Export continuous raw data to EEGLAB's .set format.
 
     Parameters
@@ -44,6 +44,8 @@ def export_set(fname, data, sfreq, ch_names, ch_locs=None, annotations=None,
         ``"Events"``.
     precision : "single" or "double"
         Precision of the exported data (specifically EEG.data in EEGLAB)
+    bads : list of str | None
+        Bad channels, for example from ``raw.info['bads']``
 
     See Also
     --------
@@ -88,7 +90,14 @@ def export_set(fname, data, sfreq, ch_names, ch_locs=None, annotations=None,
     # ICA
     icawinv = icawinv.astype(precision) if icawinv is not None else []
     icaweights = icaweights.astype(precision) if icaweights is not None else []
-    icasphere = icasphere.astype(precision) if icasphere is not None else [] 
+    icasphere = icasphere.astype(precision) if icasphere is not None else []
+    # This tells EEGLAB which channels were included in decomposition
+    if icasphere is not None:
+        icachansind = get_non_bad_channel_indices(ch_names, bads)
+        icachansind += 1  # MATLAB is 1-indexed!
+    else:
+        icachansind = []
+    
 
     eeg_d = dict(data=data,
                  setname=setname,
@@ -103,6 +112,7 @@ def export_set(fname, data, sfreq, ch_names, ch_locs=None, annotations=None,
                  icawinv=icawinv,
                  icasphere=icasphere,
                  icaweights=icaweights,
+                 icachansind=icachansind,
                  )
 
     # convert annotations to events

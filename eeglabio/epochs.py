@@ -6,12 +6,12 @@ except ImportError:
 
 from scipy.io import savemat
 
-from .utils import cart_to_eeglab, fname_to_setname, logger
+from .utils import cart_to_eeglab, fname_to_setname, logger, get_non_bad_channel_indices
 
 
 def export_set(fname, data, sfreq, events, tmin, tmax, ch_names, event_id=None,
                ch_locs=None, annotations=None, ref_channels="common",
-               precision="single", *, epoch_indices=None,
+               precision="single", *, bads=None, epoch_indices=None,
                icaweights=None, icasphere=None, icawinv=None,
                ):
     """Export epoch data to EEGLAB's .set format.
@@ -55,6 +55,8 @@ def export_set(fname, data, sfreq, events, tmin, tmax, ch_names, event_id=None,
         data for you.
     precision : "single" or "double"
         Precision of the exported data (specifically EEG.data in EEGLAB)
+    bads : list of str | None
+        Bad channels, for example from ``epochs.info['bads']``
     epoch_indices : numpy.ndarray or None
         1D integer array with one entry per event (same length as ``events``).
         Each value gives the 0-based epoch index that the corresponding event
@@ -219,7 +221,13 @@ def export_set(fname, data, sfreq, events, tmin, tmax, ch_names, event_id=None,
     # ICA
     icawinv = icawinv.astype(precision) if icawinv is not None else []
     icaweights = icaweights.astype(precision) if icaweights is not None else []
-    icasphere = icasphere.astype(precision) if icasphere is not None else [] 
+    icasphere = icasphere.astype(precision) if icasphere is not None else []
+    # This tells EEGLAB which channels were included in decomposition
+    if icasphere is not None:
+        icachansind = get_non_bad_channel_indices(ch_names, bads)
+        icachansind += 1  # MATLAB is 1-indexed!
+    else:
+        icachansind = []
 
     eeg_d = dict(data=data,
                  setname=setname,
@@ -236,5 +244,6 @@ def export_set(fname, data, sfreq, events, tmin, tmax, ch_names, event_id=None,
                  icawinv=icawinv,
                  icasphere=icasphere,
                  icaweights=icaweights,
+                 icachansind=icachansind,
                  )
     savemat(str(fname), eeg_d, appendmat=False)
